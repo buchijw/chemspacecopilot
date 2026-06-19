@@ -17,6 +17,9 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from cs_copilot.storage import S3, OutputOperation, operation_rel_path
+from cs_copilot.tools.io.session_memory import register_session_object
+
 from .base_chemistry import BaseChemistryToolkit, ChemistryError
 
 logger = logging.getLogger(__name__)
@@ -130,6 +133,31 @@ class MMPAToolkit(BaseChemistryToolkit):
                     pass
                 break
         return stats
+
+    @staticmethod
+    def _save_csv_artifact(
+        rows: List[Dict[str, Any]],
+        filename: str,
+        session_state: Optional[Dict[str, Any]],
+    ) -> str:
+        """Write *rows* to a session-scoped CSV and return its storage path."""
+        if not rows:
+            return ""
+        rel_path = operation_rel_path(
+            OutputOperation.CHEMICAL_SPACE,
+            "mmpa",
+            filename,
+            session_state=session_state,
+            workflow_slug="mmpa",
+        )
+        fieldnames = list(rows[0].keys())
+        buf = io.StringIO()
+        writer = csv.DictWriter(buf, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+        with S3.open(rel_path, "w") as fh:
+            fh.write(buf.getvalue())
+        return S3.path(rel_path)
 
     @staticmethod
     def _detect_property_prefixes(headers: List[str]) -> List[str]:
@@ -272,10 +300,26 @@ class MMPAToolkit(BaseChemistryToolkit):
         rows = self._parse_tsv(result.stdout)
         transforms = self._normalize_transform_rows(rows)
 
+        csv_path = self._save_csv_artifact(
+            [
+                {
+                    "query_smiles": query_smiles,
+                    "analogue_smiles": t.get("analogue_smiles", ""),
+                    "from_smiles": t.get("from_smiles", ""),
+                    "to_smiles": t.get("to_smiles", ""),
+                    **{k: v for k, v in t.items() if k not in ("analogue_smiles", "from_smiles", "to_smiles")},
+                }
+                for t in transforms
+            ],
+            "transform_results.csv",
+            session_state,
+        )
+
         output: Dict[str, Any] = {
             "query_smiles": query_smiles,
             "transforms": transforms,
             "count": len(transforms),
+            "csv_path": csv_path,
         }
 
         if session_state is not None:
@@ -283,6 +327,19 @@ class MMPAToolkit(BaseChemistryToolkit):
             sar.setdefault("mmps", {})["transform_results"] = output
             session_state["sar_analysis"] = sar
             session_state[_MMPA_RESULTS_KEY] = output
+            if transforms:
+                register_session_object(
+                    session_state,
+                    "analysis",
+                    {
+                        "query_smiles": query_smiles,
+                        "analysis_type": "mmp_transform",
+                        "count": len(transforms),
+                        "csv_path": csv_path,
+                    },
+                    label=f"MMP transform: {query_smiles[:40]}",
+                    source_tool="mmpa.run_mmp_transform",
+                )
 
         return output
 
@@ -339,8 +396,30 @@ class MMPAToolkit(BaseChemistryToolkit):
 
         if session_state is not None:
             sar = session_state.get("sar_analysis") or {}
-            sar.setdefault("mmps", {}).setdefault("predict_results", []).append(output)
+            predict_list = sar.setdefault("mmps", {}).setdefault("predict_results", [])
+            predict_list.append(output)
             session_state["sar_analysis"] = sar
+
+            csv_path = self._save_csv_artifact(
+                predict_list,
+                "predict_results.csv",
+                session_state,
+            )
+            register_session_object(
+                session_state,
+                "analysis",
+                {
+                    "query_smiles": query_smiles,
+                    "reference_smiles": reference_smiles,
+                    "property_name": property_name,
+                    "analysis_type": "mmp_predict",
+                    "predicted_delta": output.get("predicted_delta"),
+                    "predicted_value": output.get("predicted_value"),
+                    "csv_path": csv_path,
+                },
+                label=f"MMP predict: {property_name} ({query_smiles[:30]})",
+                source_tool="mmpa.run_mmp_predict",
+            )
 
         return output
 
@@ -385,10 +464,17 @@ class MMPAToolkit(BaseChemistryToolkit):
         result = self._run(cmd)
         generated = self._parse_generate_output(result.stdout)
 
+        csv_path = self._save_csv_artifact(
+            [{"query_smiles": query_smiles, **g} for g in generated],
+            "generate_results.csv",
+            session_state,
+        )
+
         output: Dict[str, Any] = {
             "query_smiles": query_smiles,
             "generated": generated,
             "count": len(generated),
+            "csv_path": csv_path,
         }
 
         if session_state is not None:
@@ -396,6 +482,19 @@ class MMPAToolkit(BaseChemistryToolkit):
             sar.setdefault("mmps", {})["generate_results"] = output
             session_state["sar_analysis"] = sar
             session_state[_MMPA_RESULTS_KEY] = output
+            if generated:
+                register_session_object(
+                    session_state,
+                    "analysis",
+                    {
+                        "query_smiles": query_smiles,
+                        "analysis_type": "mmp_generate",
+                        "count": len(generated),
+                        "csv_path": csv_path,
+                    },
+                    label=f"MMP generate: {query_smiles[:40]}",
+                    source_tool="mmpa.run_mmp_generate",
+                )
 
         return output
 
