@@ -26,9 +26,9 @@ from .chemistry import (
     AutoencoderToolkit,
     BaseChemistryToolkit,
     ChemicalSimilarityToolkit,
+    MMPAToolkit,
     MolecularDesignerToolkit,
     PeptideDesignerToolkit,
-    SynPlannerToolkit,
 )
 
 # GTM Toolkit
@@ -58,9 +58,9 @@ __all__ = [
     "BaseChemistryToolkit",
     "ChemicalSimilarityToolkit",
     "AutoencoderToolkit",
+    "MMPAToolkit",
     "MolecularDesignerToolkit",
     "PeptideDesignerToolkit",
-    "SynPlannerToolkit",
     "ChemblToolkit",
     "RobustnessAnalysisToolkit",
     # Visualization functions

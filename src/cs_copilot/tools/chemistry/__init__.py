@@ -18,16 +18,16 @@ from .descriptors import (
 )
 from .molecular_designer_toolkit import MolecularDesignerToolkit
 from .peptide_designer_toolkit import PeptideDesignerToolkit
+from .mmpa_toolkit import MMPAToolkit
 from .similarity_toolkit import ChemicalSimilarityToolkit
-from .synplanner_toolkit import SynPlannerToolkit
 
 __all__ = [
     "BaseChemistryToolkit",
     "ChemicalSimilarityToolkit",
     "AutoencoderToolkit",
+    "MMPAToolkit",
     "MolecularDesignerToolkit",
     "PeptideDesignerToolkit",
-    "SynPlannerToolkit",
     "MolecularDescriptorEncoder",
     "DEFAULT_DESCRIPTOR_TYPE",
     "DEFAULT_DESCRIPTOR_COLUMN",

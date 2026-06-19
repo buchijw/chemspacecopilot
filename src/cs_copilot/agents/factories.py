@@ -19,11 +19,11 @@ from cs_copilot.tools import (
     ChemblToolkit,
     ChemicalSimilarityToolkit,
     GTMToolkit,
+    MMPAToolkit,
     MolecularDesignerToolkit,
     PeptideDesignerToolkit,
     PointerPandasTools,
     SessionMemoryToolkit,
-    SynPlannerToolkit,
     # SessionToolkit,
     save_gtm_landscape_plot,
     save_gtm_plot,
@@ -40,7 +40,6 @@ from .prompts import (
     PEPTIDE_DESIGNER_INSTRUCTIONS,  # Peptide Designer for amino acid sequence generation
     REPORT_GENERATOR_INSTRUCTIONS,  # Universal presentation layer
     ROBUSTNESS_EVALUATION_INSTRUCTIONS,
-    SYNPLANNER_INSTRUCTIONS,
 )
 
 
@@ -418,6 +417,7 @@ class ChemoinformaticianFactory(BaseAgentFactory):
             """,
             tools=[
                 ChemicalSimilarityToolkit(),
+                MMPAToolkit(),
                 PointerPandasTools(),
                 GTMToolkit(),  # Enable GTM data access for downstream analysis
                 # Future: QSARToolkit, ClusteringToolkit, DescriptorToolkit
@@ -693,33 +693,6 @@ class RobustnessEvaluationFactory(BaseAgentFactory):
                     "recommendations": None,
                 },
             },
-        )
-
-
-class SynPlannerFactory(BaseAgentFactory):
-    """Factory for creating retrosynthetic planning agents powered by SynPlanner.
-
-    This agent wraps the official SynPlanner package to perform retrosynthetic
-    analysis on target molecules.  It accepts SMILES strings or molecule names,
-    resolves them to canonical SMILES (via PubChem / RDKit), runs the MCTS-based
-    retrosynthesis search, and returns structured route descriptions with
-    optional SVG/PNG visualizations.
-    """
-
-    agent_type = "synplanner"
-
-    def get_agent_config(self) -> AgentConfig:
-        return AgentConfig(
-            name="synplanner_agent",
-            description=(
-                "You are a retrosynthetic planning assistant powered by SynPlanner. "
-                "Given a target molecule (as a SMILES string or common name), you "
-                "identify the canonical structure, run the SynPlanner retrosynthesis "
-                "engine, and present the best synthetic routes with step-by-step "
-                "descriptions and visualizations."
-            ),
-            tools=[SynPlannerToolkit()],
-            instructions=SYNPLANNER_INSTRUCTIONS,
         )
 
 

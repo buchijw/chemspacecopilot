@@ -107,7 +107,6 @@ def get_cs_copilot_agent_team(
         ("report_generator", "Report Generator"),  # Universal presentation layer
         ("molecular_designer", "Molecular Designer"),  # Small-molecule design engines
         ("peptide_designer", "Peptide Designer"),  # Peptide design engines
-        ("synplanner", "SynPlanner"),
         # Note: Robustness Evaluator excluded from main team (invoked separately for testing)
     ]
 
@@ -159,11 +158,10 @@ def get_cs_copilot_agent_team(
             "and chain multiple agents when needed to complete complex analyses.\n\n"
             "• ChEMBL Downloader: Download bioactivity data from ChEMBL database\n"
             "• GTM Agent: All GTM operations (build/load/density/activity/project) with smart caching\n"
-            "• Chemoinformatician: Downstream analysis (scaffold, SAR, similarity, clustering) - works with GTM output\n"
+            "• Chemoinformatician: Downstream analysis (scaffold, SAR, similarity, clustering, MMP analysis) - works with GTM output\n"
             "• Report Generator: Universal presentation layer for all analysis types\n"
             "• Molecular Designer: Small-molecule design via autoencoder and LLM engines (SMILES, standalone + GTM-guided)\n"
-            "• Peptide Designer: Peptide design via WAE and LLM engines + GTM on latent space + DBAASP antimicrobial activity landscapes\n"
-            "• SynPlanner: Retrosynthetic planning for target molecules\n\n"
+            "• Peptide Designer: Peptide design via WAE and LLM engines + GTM on latent space + DBAASP antimicrobial activity landscapes\n\n"
             "**Molecule vs Peptide Routing**:\n"
             "  - 'peptide', 'amino acid', 'AMP', 'antimicrobial peptide' → Peptide Designer agent\n"
             "  - 'SMILES', 'molecule', 'compound', 'small molecule', 'LLM design' → Molecular Designer agent\n"
